@@ -1,6 +1,6 @@
 # Guía y Especificación del Seeder - Trámites Paysandú Joven
 
-Este seeder provee datos institucionales orientados al segmento joven (18 a 25 años) del departamento de Paysandú, adaptados a la nueva plataforma **Trámites Paysandú Joven**.
+Este seeder agrega datos institucionales orientados al segmento joven (18 a 25 años). Conserva los registros existentes y no crea ni modifica usuarios. Ejecutá `node seed.js --dry-run` para simular la carga.
 
 ---
 
@@ -19,10 +19,8 @@ node seed.js
 
 ## 🏛️ Entidades Pobladas en MongoDB
 
-### 1. Usuario Administrador Inicial
-- **Email**: `admin@paysandu.gub.uy`
-- **Contraseña**: `AdminPaysandu2026!`
-- **Rol**: `ADMIN`
+### 1. Usuarios
+El seed no crea ni modifica cuentas de usuario.
 
 ### 2. Organizaciones e Instituciones
 1. **Intendencia Departamental de Paysandú (IDP)**

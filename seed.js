@@ -7,8 +7,6 @@ import { connectMongoDB } from './database/connection.js';
 import { Organizacion } from './models/organizacion.model.js';
 import { Categoria } from './models/categoria.model.js';
 import { Tramite } from './models/tramite.model.js';
-import { User } from './models/user.model.js';
-import { hashPassword } from './services/auth.service.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,8 +23,43 @@ function slugify(text) {
     .replace(/^-+|-+$/g, '');
 }
 
+const dryRun = process.argv.includes('--dry-run');
+if (dryRun) { mongoose.set('autoIndex', false); mongoose.set('autoCreate', false); }
+const counts = { organizaciones: 0, categorias: 0, tramites: 0 };
+const seen = new Map();
+
+async function findOrCreate(Model, query, data, kind) {
+  const key = `${kind}:${data.slug || data.nombre}`;
+  if (seen.has(key)) return seen.get(key);
+  const found = await Model.findOne(query);
+  if (found) {
+    seen.set(key, found);
+    return found;
+  }
+  counts[kind]++;
+  const doc = dryRun ? new Model(data) : await Model.create(data);
+  seen.set(key, doc);
+  return doc;
+}
+
+async function findOrCreateOrganizacion(data) {
+  return findOrCreate(Organizacion, { nombre: data.nombre }, data, 'organizaciones');
+}
+
+async function findOrCreateCategoria(data) {
+  return findOrCreate(Categoria, { $or: [{ slug: data.slug }, { nombre: data.nombre }] }, data, 'categorias');
+}
+
+async function insertMissingTramites(items) {
+  for (const item of items) {
+    await findOrCreate(Tramite, { slug: item.slug }, item, 'tramites');
+  }
+}
+
 async function seedDatabase() {
-  if (process.env.NODE_ENV === 'production') throw new Error('El seed de prueba no puede ejecutarse en producción.');
+  const dataUyPath = path.join(__dirname, 'tramites_data_uy', 'tramites_data', 'tramites_completo.json');
+  const allOfficial = JSON.parse(fs.readFileSync(dataUyPath, 'utf8'));
+  if (!Array.isArray(allOfficial)) throw new Error('El catálogo de origen debe ser una lista.');
   console.log('[Seed] Iniciando poblado de base de datos para Trámites Paysandú...');
   const connected = await connectMongoDB();
   if (!connected) throw new Error('No se pudo conectar a MongoDB; no se modificaron datos.');
@@ -34,41 +67,11 @@ async function seedDatabase() {
     throw new Error('El seed solo puede ejecutarse en la base tramites_paysandu.');
   }
 
-  console.log('[Seed] Limpiando colecciones anteriores...');
-  await Promise.all([
-    Tramite.deleteMany({}),
-    Categoria.deleteMany({}),
-    Organizacion.deleteMany({}),
-    User.deleteMany({})
-  ]);
-
-  // 1. Crear Usuarios de prueba (Admin y Joven Ciudadano)
-  console.log('[Seed] Creando usuarios de acceso...');
-  const passAdmin = await hashPassword('AdminPaysandu2026!');
-  const passJoven = await hashPassword('JovenPaysandu2026!');
-
-  await User.create([
-    {
-      username: 'admin',
-      email: 'admin@paysandu.gub.uy',
-      password: passAdmin,
-      rol: 'ADMIN',
-      activo: true
-    },
-    {
-      username: 'joven_sanducero',
-      email: 'joven@paysandu.gub.uy',
-      password: passJoven,
-      rol: 'CIUDADANO',
-      activo: true
-    }
-  ]);
-  console.log('  -> Usuario Administrador: admin@paysandu.gub.uy / AdminPaysandu2026!');
-  console.log('  -> Usuario Ciudadano:     joven@paysandu.gub.uy / JovenPaysandu2026!');
+  console.log('[Seed] Se conservarán los registros y usuarios existentes.');
 
   // 2. Crear Organizaciones principales
   console.log('[Seed] Creando organizaciones e instituciones...');
-  const orgIDP = await Organizacion.create({
+  const orgIDP = await findOrCreateOrganizacion({
     nombre: 'Intendencia Departamental de Paysandú',
     siglas: 'IDP',
     sitioWeb: 'https://www.paysandu.gub.uy',
@@ -104,7 +107,7 @@ async function seedDatabase() {
     ]
   });
 
-  const orgDNIC = await Organizacion.create({
+  const orgDNIC = await findOrCreateOrganizacion({
     nombre: 'Dirección Nacional de Identificación Civil (DNIC)',
     siglas: 'DNIC',
     sitioWeb: 'https://dnic.minterior.gub.uy',
@@ -125,7 +128,7 @@ async function seedDatabase() {
     ]
   });
 
-  const orgDDS = await Organizacion.create({
+  const orgDDS = await findOrCreateOrganizacion({
     nombre: 'Dirección Departamental de Salud de Paysandú (MSP)',
     siglas: 'DDS',
     sitioWeb: 'https://www.gub.uy/ministerio-salud-publica',
@@ -146,7 +149,7 @@ async function seedDatabase() {
     ]
   });
 
-  const orgBPS = await Organizacion.create({
+  const orgBPS = await findOrCreateOrganizacion({
     nombre: 'Banco de Previsión Social (Sucursal Paysandú)',
     siglas: 'BPS',
     sitioWeb: 'https://www.bps.gub.uy',
@@ -167,7 +170,7 @@ async function seedDatabase() {
     ]
   });
 
-  const orgFondo = await Organizacion.create({
+  const orgFondo = await findOrCreateOrganizacion({
     nombre: 'Fondo de Solidaridad / Bienestar Estudiantil',
     siglas: 'Fondo Solidaridad',
     sitioWeb: 'https://becas.fondodesolidaridad.edu.uy',
@@ -188,7 +191,7 @@ async function seedDatabase() {
     ]
   });
 
-  const orgINJU = await Organizacion.create({
+  const orgINJU = await findOrCreateOrganizacion({
     nombre: 'Instituto Nacional de la Juventud (INJU - MIDES Paysandú)',
     siglas: 'INJU',
     sitioWeb: 'https://www.gub.uy/inju',
@@ -209,7 +212,7 @@ async function seedDatabase() {
     ]
   });
 
-  const orgDGI = await Organizacion.create({
+  const orgDGI = await findOrCreateOrganizacion({
     nombre: 'Dirección General Impositiva (DGI Paysandú)',
     siglas: 'DGI',
     sitioWeb: 'https://www.dgi.gub.uy',
@@ -232,7 +235,7 @@ async function seedDatabase() {
 
   // 3. Crear Categorías
   console.log('[Seed] Creando categorías ciudadanas...');
-  const catVidaCiudadana = await Categoria.create({
+  const catVidaCiudadana = await findOrCreateCategoria({
     nombre: 'Vida ciudadana',
     slug: 'vida-ciudadana',
     descripcion: 'Cédula de identidad, boleto estudiantil, credencial cívica y trámites de identidad.',
@@ -241,7 +244,7 @@ async function seedDatabase() {
     orden: 1
   });
 
-  const catSalud = await Categoria.create({
+  const catSalud = await findOrCreateCategoria({
     nombre: 'Salud',
     slug: 'salud',
     descripcion: 'Carné de salud básico y laboral, policlínicas barriales, vacunatorios y chequeos.',
@@ -250,7 +253,7 @@ async function seedDatabase() {
     orden: 2
   });
 
-  const catTrabajo = await Categoria.create({
+  const catTrabajo = await findOrCreateCategoria({
     nombre: 'Trabajo',
     slug: 'trabajo',
     descripcion: 'Inscripción en BPS, primer empleo, registro de emprendedores jóvenes y orientación laboral.',
@@ -259,7 +262,7 @@ async function seedDatabase() {
     orden: 3
   });
 
-  const catEducacion = await Categoria.create({
+  const catEducacion = await findOrCreateCategoria({
     nombre: 'Educación y Becas',
     slug: 'educacion-y-becas',
     descripcion: 'Becas económicas del Fondo de Solidaridad, pasantías, becas Butiá y apoyos de estudio.',
@@ -268,7 +271,7 @@ async function seedDatabase() {
     orden: 4
   });
 
-  const catTransito = await Categoria.create({
+  const catTransito = await findOrCreateCategoria({
     nombre: 'Tránsito y Transporte',
     slug: 'transito-y-transporte',
     descripcion: 'Primera libreta de conducir para jóvenes, motos, automóviles y seguridad vial.',
@@ -277,7 +280,7 @@ async function seedDatabase() {
     orden: 5
   });
 
-  const catTributos = await Categoria.create({
+  const catTributos = await findOrCreateCategoria({
     nombre: 'Tributos y Finanzas',
     slug: 'tributos-y-finanzas',
     descripcion: 'Contribución inmobiliaria, patente de rodados y convenios de pago.',
@@ -799,16 +802,13 @@ async function seedDatabase() {
     }
   ];
 
-  await Tramite.create(tramitesBase);
-  console.log(`  -> ${tramitesBase.length} trámites juveniles prioritarios creados.`);
+  await insertMissingTramites(tramitesBase);
+  console.log(`  -> ${tramitesBase.length} trámites juveniles prioritarios procesados.`);
 
   // 5. Ingesta de trámites oficiales desde "tramites_data_uy"
-  const dataUyPath = path.join(__dirname, 'tramites_data_uy', 'tramites_data', 'tramites_completo.json');
   if (fs.existsSync(dataUyPath)) {
     console.log(`[Seed] Ingestando trámites oficiales desde ${dataUyPath}...`);
     try {
-      const rawData = fs.readFileSync(dataUyPath, 'utf8');
-      const allOfficial = JSON.parse(rawData);
       console.log(`  -> Archivo cargado: ${allOfficial.length} trámites disponibles en el catálogo oficial de Uruguay.`);
 
       // Filtrar los que mencionan Paysandú o son prioritarios de educación, trabajo, salud, identidad
@@ -841,22 +841,11 @@ async function seedDatabase() {
         }
         slugsExistentes.add(slug);
 
-        // Determinar organismo
-        let organismoId = orgIDP._id;
-        const orgName = (item.organismo || '').toLowerCase();
-        if (orgName.includes('identificacion') || orgName.includes('dnic') || orgName.includes('interior')) {
-          organismoId = orgDNIC._id;
-        } else if (orgName.includes('salud') || orgName.includes('msp') || orgName.includes('sanitaria')) {
-          organismoId = orgDDS._id;
-        } else if (orgName.includes('prevision') || orgName.includes('bps')) {
-          organismoId = orgBPS._id;
-        } else if (orgName.includes('solidaridad') || orgName.includes('educacion') || orgName.includes('mec') || orgName.includes('universidad')) {
-          organismoId = orgFondo._id;
-        } else if (orgName.includes('juventud') || orgName.includes('mides') || orgName.includes('inju')) {
-          organismoId = orgINJU._id;
-        } else if (orgName.includes('impositiva') || orgName.includes('dgi')) {
-          organismoId = orgDGI._id;
-        }
+        // Conservar el organismo informado por la fuente.
+        const nombreOrganismo = typeof item.organismo === 'string' ? item.organismo.trim() : '';
+        if (!nombreOrganismo) continue;
+        const organismo = await findOrCreateOrganizacion({ nombre: nombreOrganismo });
+        const organismoId = organismo._id;
 
         // Determinar categoría
         let categoriaId = catVidaCiudadana._id;
@@ -881,7 +870,7 @@ async function seedDatabase() {
               esObligatorio: true,
               orden: idx + 1
             }))
-          : [{ descripcion: 'Documento de Identidad vigente y en buen estado.', esObligatorio: true, orden: 1 }];
+          : [];
 
         // Parsear pasos
         const pasoStr = item.presencial?.como_se_hace || item.en_linea?.como_se_hace || '';
@@ -892,8 +881,7 @@ async function seedDatabase() {
               descripcionPaso: pDesc.trim()
             }))
           : [
-              { numeroPaso: 1, tituloPaso: 'Revisión previa', descripcionPaso: 'Verificar contar con los requisitos solicitados.' },
-              { numeroPaso: 2, tituloPaso: 'Inicio de trámite', descripcionPaso: item.en_linea?.disponible ? 'Ingresar al portal oficial del organismo.' : 'Concurrir a la oficina de atención ciudadana.' }
+              { numeroPaso: 1, tituloPaso: 'Consultar el trámite', descripcionPaso: 'Consultá los pasos en el enlace de la fuente.' }
             ];
 
         // Costo
@@ -910,8 +898,8 @@ async function seedDatabase() {
           destacado: false,
           modalidad: item.en_linea?.disponible && item.canales?.includes('persona') ? 'Mixto' : item.en_linea?.disponible ? 'En Línea' : 'Presencial',
           costo: {
-            tipo: tieneCosto ? 'Con Costo' : 'Gratuito',
-            monto: costoInfo.valor ? `${costoInfo.valor} ${costoInfo.unidad || ''}`.trim() : (tieneCosto ? 'Con costo oficial' : '$ 0'),
+            tipo: tieneCosto === true ? 'Con Costo' : tieneCosto === false ? 'Gratuito' : 'Variable',
+            monto: costoInfo.valor ? `${costoInfo.valor} ${costoInfo.unidad || ''}`.trim() : undefined,
             detalles: costoInfo.otros_costos || ''
           },
           tiempoEstimado: 'Según coordinación con la dependencia',
@@ -927,15 +915,16 @@ async function seedDatabase() {
         if (nuevosTramites.length >= 120) break;
       }
 
-      await Tramite.create(nuevosTramites);
-      console.log(`  -> ${nuevosTramites.length} trámites adicionales importados con éxito desde tramites_completo.json.`);
+      await insertMissingTramites(nuevosTramites);
+      console.log(`  -> ${nuevosTramites.length} trámites adicionales procesados desde tramites_completo.json.`);
     } catch (err) {
-      console.warn('[Seed] Error al leer archivo tramites_completo.json:', err.message);
+      throw new Error('No se pudo importar el catálogo: ' + err.message);
     }
   }
 
+  console.log(`[Seed] ${dryRun ? 'Se agregarían' : 'Agregados'}: ${counts.organizaciones} organizaciones, ${counts.categorias} categorías y ${counts.tramites} trámites.`);
   const totalTramites = await Tramite.countDocuments();
-  console.log(`\n[Seed] Base de datos poblada exitosamente. Total de trámites activos: ${totalTramites}.`);
+  console.log(`\n[Seed] Trámites existentes en la base: ${totalTramites}.`);
   await mongoose.disconnect();
   console.log('[Seed] Conexión cerrada.');
   process.exit(0);

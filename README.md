@@ -60,17 +60,17 @@ FRONTEND_ORIGIN=http://localhost:5173
 ```
 
 ### 2. Poblar la Base de Datos (Seed)
-**Atención:** el seed elimina todos los trámites, categorías, organizaciones y usuarios existentes de la base `tramites_paysandu` antes de cargar datos de prueba. Úsalo solo en una base de desarrollo. El script se detiene si la conexión apunta a otra base.
+El seed agrega solo organizaciones, categorías y trámites que no existan; conserva los registros existentes y no crea ni modifica usuarios. Solo se ejecuta en la base `tramites_paysandu`. Antes de cargar, se puede simular con `node seed.js --dry-run`.
 
 Asegúrate de tener MongoDB corriendo (localmente o en MongoDB Atlas) y ejecuta:
 ```bash
 npm run seed
 ```
 Este script crea:
-- Un usuario administrador (`admin@paysandu.gub.uy` / `AdminPaysandu2026!`).
+- No crea ni modifica cuentas de usuario.
 - Las instituciones: Intendencia Departamental de Paysandú (IDP), BPS y Dirección Departamental de Salud (DDS) con sus sedes y links a Google Maps.
 - Las categorías temáticas (Tránsito, Salud, Tributos, Comercio, Obras).
-- Fichas completas de trámites con requisitos, documentos, pasos y preguntas frecuentes.
+- Los trámites principales del seed y hasta 120 registros filtrados del catálogo nacional. La información de la fuente debe revisarse antes de considerarla vigente.
 
 ### 3. Iniciar el Servidor
 ```bash
