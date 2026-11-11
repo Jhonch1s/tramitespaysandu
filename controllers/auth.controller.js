@@ -2,7 +2,7 @@ import { registerUser, loginUser } from '../services/auth.service.js';
 
 export async function register(req, res) {
   try {
-    const { username, email, password, rol } = req.body;
+    const { username, email, password } = req.body;
     if (!username || !email || !password) {
       return res.status(400).json({
         success: false,
@@ -10,7 +10,7 @@ export async function register(req, res) {
       });
     }
 
-    const user = await registerUser({ username, email, password, rol });
+    const user = await registerUser({ username, email, password });
     res.status(201).json({
       success: true,
       message: 'Usuario registrado exitosamente',

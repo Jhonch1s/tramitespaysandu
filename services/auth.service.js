@@ -54,7 +54,7 @@ export function generateToken(user) {
   );
 }
 
-export async function registerUser({ username, email, password, rol }) {
+export async function registerUser({ username, email, password }) {
   if (!getIsDatabaseConnected()) {
     const existing = localUsersStore.find(u => u.email === email);
     if (existing) {
@@ -65,7 +65,7 @@ export async function registerUser({ username, email, password, rol }) {
       username,
       email,
       passwordRaw: password,
-      rol: rol || 'CIUDADANO'
+      rol: 'CIUDADANO'
     };
     localUsersStore.push(newUser);
     return {
@@ -86,7 +86,7 @@ export async function registerUser({ username, email, password, rol }) {
     username,
     email,
     password: hashedPassword,
-    rol: rol || 'ADMIN'
+    rol: 'CIUDADANO'
   });
 
   return {

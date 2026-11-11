@@ -60,6 +60,8 @@ FRONTEND_ORIGIN=http://localhost:5173
 ```
 
 ### 2. Poblar la Base de Datos (Seed)
+**Atención:** el seed elimina todos los trámites, categorías, organizaciones y usuarios existentes de la base `tramites_paysandu` antes de cargar datos de prueba. Úsalo solo en una base de desarrollo. El script se detiene si la conexión apunta a otra base.
+
 Asegúrate de tener MongoDB corriendo (localmente o en MongoDB Atlas) y ejecuta:
 ```bash
 npm run seed

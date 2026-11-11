@@ -26,15 +26,12 @@ function slugify(text) {
 }
 
 async function seedDatabase() {
+  if (process.env.NODE_ENV === 'production') throw new Error('El seed de prueba no puede ejecutarse en producción.');
   console.log('[Seed] Iniciando poblado de base de datos para Trámites Paysandú...');
-  await connectMongoDB();
-
-  try {
-    const oldDb = mongoose.connection.client.db('laburoYHambre');
-    await oldDb.dropDatabase();
-    console.log('[Seed] Antigua base de datos "laburoYHambre" eliminada con éxito.');
-  } catch {
-    // Ignorar si no existe
+  const connected = await connectMongoDB();
+  if (!connected) throw new Error('No se pudo conectar a MongoDB; no se modificaron datos.');
+  if (mongoose.connection.name !== 'tramites_paysandu') {
+    throw new Error('El seed solo puede ejecutarse en la base tramites_paysandu.');
   }
 
   console.log('[Seed] Limpiando colecciones anteriores...');

@@ -35,6 +35,10 @@ export async function connectMongoDB() {
   }
 }
 
+mongoose.connection.on('connected', () => {
+  isConnected = true;
+});
+
 mongoose.connection.on('disconnected', () => {
   isConnected = false;
   console.warn('[Database] Desconectado de MongoDB');

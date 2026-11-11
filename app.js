@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import { getIsDatabaseConnected } from './database/connection.js';
 
 import authRoutes from './routes/auth.route.js';
 import categoriaRoutes from './routes/categoria.route.js';
@@ -28,6 +29,13 @@ app.use(cors({
 
 app.use(express.json({ limit: '1mb' }));
 
+// En producción nunca responder con datos de demostración si falla MongoDB.
+app.use('/api', (req, res, next) => {
+  if (process.env.NODE_ENV === 'production' && !getIsDatabaseConnected()) {
+    return res.status(503).json({ success: false, message: 'Base de datos temporalmente no disponible' });
+  }
+  next();
+});
 // Montaje de rutas de la API
 app.use('/api/auth', authRoutes);
 app.use('/api/categorias', categoriaRoutes);
