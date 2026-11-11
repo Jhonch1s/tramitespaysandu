@@ -29,6 +29,14 @@ async function seedDatabase() {
   console.log('[Seed] Iniciando poblado de base de datos para Trámites Paysandú...');
   await connectMongoDB();
 
+  try {
+    const oldDb = mongoose.connection.client.db('laburoYHambre');
+    await oldDb.dropDatabase();
+    console.log('[Seed] Antigua base de datos "laburoYHambre" eliminada con éxito.');
+  } catch {
+    // Ignorar si no existe
+  }
+
   console.log('[Seed] Limpiando colecciones anteriores...');
   await Promise.all([
     Tramite.deleteMany({}),
@@ -300,7 +308,7 @@ async function seedDatabase() {
       },
       tiempoEstimado: '15 minutos de atención presencial',
       dirigidoA: 'Ciudadanos uruguayos y residentes legales a partir de los 18 años.',
-      urlAgenda: 'https://dnic.minterior.gub.uy/agenda',
+      urlAgenda: 'https://www.gub.uy/tramites/reserva-dia-hora-cedula-identidad',
       urlTramiteOnline: 'https://www.gub.uy/tramites/cedula-identidad',
       lugaresAtencion: [
         {
@@ -354,8 +362,8 @@ async function seedDatabase() {
       ],
       videos: [
         {
-          titulo: 'Guía paso a paso: Cómo sacar tu turno para la Cédula',
-          urlVideo: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+          titulo: 'Cédula de identidad (trámite en línea)',
+          urlVideo: 'https://www.youtube.com/watch?v=NALqFcXNiz4'
         }
       ],
       preguntasFrecuentes: [
@@ -386,8 +394,8 @@ async function seedDatabase() {
       },
       tiempoEstimado: 'Atención matinal, entrega en 24 a 48 hs',
       dirigidoA: 'Jóvenes de 18 a 25 años que ingresan a un empleo formal o cursan estudios superiores.',
-      urlAgenda: 'https://agenda.paysandu.gub.uy/salud',
-      urlTramiteOnline: 'https://www.gub.uy/tramites/carne-salud',
+      urlAgenda: 'https://www.gub.uy/tramites/carne-salud-basico',
+      urlTramiteOnline: 'https://www.gub.uy/tramites/carne-salud-basico',
       lugaresAtencion: [
         {
           nombreLugar: 'Dirección Departamental de Salud (MSP) / Policlínica',
@@ -434,8 +442,8 @@ async function seedDatabase() {
       ],
       videos: [
         {
-          titulo: '¿Cómo prepararte para el Carné de Salud?',
-          urlVideo: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+          titulo: 'Carné de Salud en Uruguay: Requisitos y Exámenes',
+          urlVideo: 'https://www.youtube.com/watch?v=j3EdiIcGTSE'
         }
       ],
       preguntasFrecuentes: [
@@ -462,7 +470,7 @@ async function seedDatabase() {
       },
       tiempoEstimado: '10 minutos en línea',
       dirigidoA: 'Jóvenes que ingresan a su primer empleo dependiente, becarios o contratados en Paysandú.',
-      urlAgenda: 'https://www.bps.gub.uy/agendas',
+      urlAgenda: 'https://www.bps.gub.uy/10497/reserva-de-agenda.html',
       urlTramiteOnline: 'https://servicios.bps.gub.uy',
       lugaresAtencion: [
         {
@@ -508,6 +516,12 @@ async function seedDatabase() {
           respuesta: 'El empleador hace el alta, pero vos debés ingresar a BPS para elegir tu prestador médico (Fonasa) y corroborar tu historia laboral.'
         }
       ],
+      videos: [
+        {
+          titulo: 'Usuario Personal BPS y Servicios en Línea',
+          urlVideo: 'https://www.youtube.com/watch?v=4JLvFKEG3PY'
+        }
+      ],
       palabrasClave: ['bps', 'trabajo', 'alta laboral', 'primer empleo', 'fonasa', 'seguridad social', 'historia laboral']
     },
     {
@@ -526,6 +540,7 @@ async function seedDatabase() {
       },
       tiempoEstimado: 'Postulación anual (Noviembre a Febrero)',
       dirigidoA: 'Estudiantes terciarios con situación socioeconómica vulnerable.',
+      urlAgenda: 'https://becas.fondodesolidaridad.edu.uy',
       urlTramiteOnline: 'https://becas.fondodesolidaridad.edu.uy',
       lugaresAtencion: [
         {
@@ -565,6 +580,12 @@ async function seedDatabase() {
           descripcionPaso: 'Una vez asignada, la beca se deposita mensualmente en una cuenta bancaria a tu nombre.'
         }
       ],
+      videos: [
+        {
+          titulo: 'Tutorial solicitud de la Beca Fondo de Solidaridad',
+          urlVideo: 'https://www.youtube.com/watch?v=8JmEjd3ouA0'
+        }
+      ],
       palabrasClave: ['beca', 'fondo de solidaridad', 'estudiantil', 'universidad', 'utec', 'udelar', 'cenur', 'apoyo economico']
     },
     {
@@ -583,6 +604,8 @@ async function seedDatabase() {
       },
       tiempoEstimado: '15 minutos (retiro en el acto)',
       dirigidoA: 'Estudiantes de hasta 25 años matriculados en centros de estudio formales de Paysandú.',
+      urlAgenda: 'https://www.paysandu.gub.uy',
+      urlTramiteOnline: 'https://www.paysandu.gub.uy',
       lugaresAtencion: [
         {
           nombreLugar: 'Dirección de Tránsito y Transporte',
@@ -620,6 +643,12 @@ async function seedDatabase() {
           descripcionPaso: 'Se te carga el paquete de hasta 50 boletos mensuales para los colectivos locales.'
         }
       ],
+      videos: [
+        {
+          titulo: 'Trámites de Tránsito y Transporte en Paysandú',
+          urlVideo: 'https://www.youtube.com/watch?v=lqMQwTwQEPk'
+        }
+      ],
       palabrasClave: ['boleto', 'transporte', 'estudiante', 'omnibus', 'abono', 'colectivo', 'idp', 'pase libre']
     },
     {
@@ -638,7 +667,8 @@ async function seedDatabase() {
       },
       tiempoEstimado: '1 a 3 semanas (según coordinación de clases de academia y exámenes)',
       dirigidoA: 'Personas a partir de 18 años cumplidos radicadas en Paysandú.',
-      urlAgenda: 'https://agenda.paysandu.gub.uy/transito',
+      urlAgenda: 'https://www.paysandu.gub.uy',
+      urlTramiteOnline: 'https://www.paysandu.gub.uy',
       lugaresAtencion: [
         {
           nombreLugar: 'Dirección de Tránsito y Transporte',
@@ -683,6 +713,12 @@ async function seedDatabase() {
           descripcionPaso: 'Superados los exámenes, se toma la foto digital y se entrega el carné de conductor.'
         }
       ],
+      videos: [
+        {
+          titulo: 'Tramitar licencias de conducir fácil y rápido - Intendencia de Paysandú',
+          urlVideo: 'https://www.youtube.com/watch?v=ddeCuibHqL4'
+        }
+      ],
       palabrasClave: ['primera libreta', 'aprender a manejar', 'licencia', 'auto', 'categoria a', 'examen teorico', 'transito']
     },
     {
@@ -701,7 +737,8 @@ async function seedDatabase() {
       },
       tiempoEstimado: 'En el momento tras chequeo médico y foto',
       dirigidoA: 'Conductores cuya licencia esté vencida o dentro de los 30 días previos a su vencimiento.',
-      urlAgenda: 'https://agenda.paysandu.gub.uy/transito',
+      urlAgenda: 'https://www.paysandu.gub.uy',
+      urlTramiteOnline: 'https://www.paysandu.gub.uy',
       lugaresAtencion: [
         {
           nombreLugar: 'Dirección de Tránsito y Transporte',

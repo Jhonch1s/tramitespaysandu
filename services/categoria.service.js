@@ -1,14 +1,19 @@
 import { Categoria } from '../models/categoria.model.js';
 import { Tramite } from '../models/tramite.model.js';
+import { getIsDatabaseConnected } from '../database/connection.js';
+import { getFallbackCategorias } from './fallbackData.js';
 
 export async function listarCategorias(conConteo = true) {
+  if (!getIsDatabaseConnected()) {
+    return getFallbackCategorias();
+  }
+
   const categorias = await Categoria.find({ activo: true }).sort({ orden: 1, nombre: 1 }).lean();
 
   if (!conConteo) {
     return categorias;
   }
 
-  // Contar trámites activos por cada categoría
   const conteos = await Tramite.aggregate([
     { $match: { activo: true } },
     { $group: { _id: '$categoria', total: { $sum: 1 } } }
@@ -26,6 +31,9 @@ export async function listarCategorias(conConteo = true) {
 }
 
 export async function obtenerCategoriaPorSlug(slug) {
+  if (!getIsDatabaseConnected()) {
+    return getFallbackCategorias().find(c => c.slug === slug.toLowerCase()) || null;
+  }
   return Categoria.findOne({ slug: slug.toLowerCase(), activo: true });
 }
 
@@ -33,7 +41,7 @@ export async function crearCategoria(data) {
   if (!data.slug && data.nombre) {
     data.slug = data.nombre
       .toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Quitar tildes
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)+/g, '');
   }

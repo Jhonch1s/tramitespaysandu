@@ -5,10 +5,20 @@ import authRoutes from './routes/auth.route.js';
 import categoriaRoutes from './routes/categoria.route.js';
 import organizacionRoutes from './routes/organizacion.route.js';
 import tramiteRoutes from './routes/tramite.route.js';
+import progresoRoutes from './routes/progreso.route.js';
 
 const app = express();
 
 const frontendOrigin = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
+
+// Cabeceras de seguridad HTTP
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
 
 app.use(cors({
   origin: frontendOrigin,
@@ -16,13 +26,14 @@ app.use(cors({
   allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization']
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 
 // Montaje de rutas de la API
 app.use('/api/auth', authRoutes);
 app.use('/api/categorias', categoriaRoutes);
 app.use('/api/organizaciones', organizacionRoutes);
 app.use('/api/tramites', tramiteRoutes);
+app.use('/api/progreso', progresoRoutes);
 
 // Endpoint de diagnóstico
 app.get('/api/health', (req, res) => {
@@ -44,7 +55,8 @@ app.get('/', (req, res) => {
       destacados: '/api/tramites/destacados',
       categorias: '/api/categorias',
       organizaciones: '/api/organizaciones',
-      auth: '/api/auth'
+      auth: '/api/auth',
+      progreso: '/api/progreso'
     }
   });
 });
@@ -59,11 +71,10 @@ app.use((req, res) => {
 
 // Manejo global de errores (500)
 app.use((err, req, res, next) => {
-  console.error('[Error no controlado]:', err);
+  console.error('[Error interno]:', err?.message || err);
   res.status(500).json({
     success: false,
-    message: 'Ocurrió un error interno en el servidor',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    message: 'Ocurrió un error interno en el servidor'
   });
 });
 

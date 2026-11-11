@@ -2,8 +2,26 @@ import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/user.model.js';
+import { getIsDatabaseConnected } from '../database/connection.js';
 
 const deriveKey = promisify(scrypt);
+
+const localUsersStore = [
+  {
+    _id: 'usr-admin-demo',
+    username: 'admin',
+    email: 'admin@paysandu.gub.uy',
+    passwordRaw: 'AdminPaysandu2026!',
+    rol: 'ADMIN'
+  },
+  {
+    _id: 'usr-joven-demo',
+    username: 'joven_sanducero',
+    email: 'joven@paysandu.gub.uy',
+    passwordRaw: 'JovenPaysandu2026!',
+    rol: 'CIUDADANO'
+  }
+];
 
 export async function hashPassword(password) {
   const salt = randomBytes(16).toString('hex');
@@ -26,7 +44,7 @@ export function generateToken(user) {
 
   return jwt.sign(
     {
-      id: user._id,
+      id: user._id || user.id,
       username: user.username,
       email: user.email,
       rol: user.rol
@@ -37,6 +55,27 @@ export function generateToken(user) {
 }
 
 export async function registerUser({ username, email, password, rol }) {
+  if (!getIsDatabaseConnected()) {
+    const existing = localUsersStore.find(u => u.email === email);
+    if (existing) {
+      throw new Error('Ya existe un usuario con este correo electrónico');
+    }
+    const newUser = {
+      _id: `usr-${Date.now()}`,
+      username,
+      email,
+      passwordRaw: password,
+      rol: rol || 'CIUDADANO'
+    };
+    localUsersStore.push(newUser);
+    return {
+      id: newUser._id,
+      username: newUser.username,
+      email: newUser.email,
+      rol: newUser.rol
+    };
+  }
+
   const existing = await User.findOne({ email });
   if (existing) {
     throw new Error('Ya existe un usuario con este correo electrónico');
@@ -59,6 +98,23 @@ export async function registerUser({ username, email, password, rol }) {
 }
 
 export async function loginUser(email, password) {
+  if (!getIsDatabaseConnected()) {
+    const found = localUsersStore.find(u => u.email === email && u.passwordRaw === password);
+    if (!found) {
+      throw new Error('Credenciales inválidas');
+    }
+    const token = generateToken(found);
+    return {
+      token,
+      user: {
+        id: found._id,
+        username: found.username,
+        email: found.email,
+        rol: found.rol
+      }
+    };
+  }
+
   const user = await User.findOne({ email, activo: true }).select('+password');
   if (!user) {
     throw new Error('Credenciales inválidas');

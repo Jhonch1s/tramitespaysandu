@@ -6,9 +6,10 @@ const PORT = process.env.PORT || 3000;
 
 try {
   if (!process.env.JWT_SECRET) {
-    console.warn('[Advertencia] JWT_SECRET no está definido en .env, usando valor por defecto para desarrollo');
+    console.warn('[Advertencia] JWT_SECRET no está definido en .env, usando valor por defecto');
   }
 
+  // Intentar conectar a MongoDB (Atlas o local)
   await connectMongoDB();
 
   app.listen(PORT, () => {
@@ -16,6 +17,6 @@ try {
     console.log(`[Servidor] Modo: ${process.env.NODE_ENV || 'development'}`);
   });
 } catch (error) {
-  console.error('[Servidor] Error crítico al iniciar:', error);
+  console.error('[Servidor] Error no recuperable al iniciar:', error.message);
   process.exit(1);
 }
